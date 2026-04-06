@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=StickyWidget
+Type=Application
+Terminal=false
+
+Exec=StickyWidget
+Icon=StickyWidget
