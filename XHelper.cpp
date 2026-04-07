@@ -70,7 +70,7 @@ XHelper::isDesktopShowing() {
 /**
  * This method returns the number of the current workspace,
  * where the OS allows multiple / virtual workspaces.
- * result == -1 is all.
+ * result == -1 is all windows are visible.
  */
 long
 XHelper::getVisibleWorkspace() {
@@ -415,18 +415,41 @@ XHelper::isWindowDock(const Window window) {
  * is the one the mouse is over.
  */
 bool
-XHelper::isWindowHovered(const Window window,
-    const QPoint pos) {
+XHelper::isWindowHovered(const Window window, const QPoint pos) {
+    // Get info for the request.
+    const long VISIBLE_WS = getVisibleWorkspace();
+    const WinInfo* WININFO = getWinInfoForWindow(window);
+
+    // Get candidate windows.
     const vector<WinInfo*> winInfos = getWinInfoList();
     const int WININFO_SIZE = winInfos.size();
 
-    // 0 is desktop, search down from top.
+    // Search windows down from the top.
     for (int i = WININFO_SIZE - 1; i >= 0; i--) {
-        if (!winInfos[i]->isHidden &&
-            winInfos[i]->windowBorder.contains(pos)) {
-            return winInfos[i]->window == window;
+        // Hidden windows can't be hovered.
+        const WinInfo* EACH = winInfos[i];
+        if (EACH->isHidden) {
+            continue;
         }
+
+        // If the window is on a specific workspace & its not
+        // the one we're displaying, we're not hovering it.
+        if (VISIBLE_WS != -1 && EACH->onWorkspace != -1 &&
+            VISIBLE_WS != EACH->onWorkspace) {
+            continue;
+        }
+
+        // If the window doesn't contain the cursor x,y
+        // position, we're not hovering it.
+        if (!EACH->windowBorder.contains(pos)) {
+            continue;
+        }
+
+        // We found the hovered window, is it the requested one?
+        return EACH->window == window;
     }
+
+    // No windows hovered.
     return false;
 }
 

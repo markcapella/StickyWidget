@@ -117,7 +117,7 @@ void mainThread(void* data) {
         return;
     }
 
-    // Gert window hovered state.
+    // Get window hovered state.
     const bool IS_WINDOW_HOVERED = mXHelper->isWindowHovered(
         THIS_X_WINDOW, QPoint(rootX, rootY));
     canvas->setSettingsButtonVisibility(IS_WINDOW_HOVERED);

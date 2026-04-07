@@ -29,7 +29,7 @@ class XHelper {
         /**
          * This method returns the number of the current workspace,
          * where the OS allows multiple / virtual workspaces.
-         * result == -1 is all.
+         * result == -1 is all windows are visible.
          */
         long getVisibleWorkspace();
 
