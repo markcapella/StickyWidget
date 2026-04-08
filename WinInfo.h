@@ -12,7 +12,11 @@ class WinInfo {
 
         // Members.
         Window window = None;
-        QRect windowBorder{};
+
+        QRect windowCanvas{};
+        QPoint canvasOffset;
+
+        QRect combinedCanvas{};
 
         int onWorkspace = -1; // All.
         int mapState = -1; // Undef.

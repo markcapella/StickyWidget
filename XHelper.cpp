@@ -441,7 +441,7 @@ XHelper::isWindowHovered(const Window window, const QPoint pos) {
 
         // If the window doesn't contain the cursor x,y
         // position, we're not hovering it.
-        if (!EACH->windowBorder.contains(pos)) {
+        if (!EACH->combinedCanvas.contains(pos)) {
             continue;
         }
 
@@ -514,14 +514,31 @@ XHelper::getWinInfoList() {
         XTranslateCoordinates(mDisplay, winInfo->window,
             DefaultRootWindow(mDisplay), 0, 0, &xCoord,
                 &yCoord, &unused);
-        winInfo->windowBorder.setX(xCoord);
-        winInfo->windowBorder.setY(yCoord);
+        winInfo->windowCanvas.setX(xCoord);
+        winInfo->windowCanvas.setY(yCoord);
 
-        // Set StickyWindow client rect w-h QSize.
+        // Set StickyWindow canvas rect w-h QSize.
         const XWindowAttributes wAttrs =
             getWindowAttributes(winInfo->window);
-        winInfo->windowBorder.setWidth(wAttrs.width);
-        winInfo->windowBorder.setHeight(wAttrs.height);
+        winInfo->windowCanvas.setWidth(wAttrs.width);
+        winInfo->windowCanvas.setHeight(wAttrs.height);
+
+        // Set StickyWindow canvas offset-from-titlebar.
+        winInfo->canvasOffset.setX(wAttrs.x);
+        winInfo->canvasOffset.setY(wAttrs.y);
+
+        // Determine combine window - titlebar & draw area.
+        const int OFFSET_X = winInfo->canvasOffset.x();
+        const int OFFSET_Y = winInfo->canvasOffset.y();
+
+        winInfo->combinedCanvas.setX(
+            winInfo->windowCanvas.x() - OFFSET_X);
+        winInfo->combinedCanvas.setY(
+            winInfo->windowCanvas.y() - OFFSET_Y);
+        winInfo->combinedCanvas.setWidth(
+            winInfo->windowCanvas.width() + OFFSET_X);
+        winInfo->combinedCanvas.setHeight(
+            winInfo->windowCanvas.height() + OFFSET_Y);
 
         // Set all other WinInfo fields.
         winInfo->onWorkspace = getWindowWorkspace(
@@ -583,8 +600,8 @@ XHelper::logWinInfoStructColumns() {
     cout << endl << XCOLOR_GREEN <<
         "---window---  Titlebar Name"
         "                             WS   "
-        "M  ---Position--  -----QSize----  "
-        "Attributes" <<
+        "M  ---Position--  ----Size-----  "
+        "---Offset----  Attributes" <<
         XCOLOR_NORMAL << endl;
 }
 
@@ -594,17 +611,19 @@ XHelper::logWinInfoStructColumns() {
  */
 void
 XHelper::logWinInfo(const WinInfo* winInfo) {
-    printf("[0x%08lx]  %s  %2i  %2i  %5i , %-5i  "
+    printf("[0x%08lx]  %s  %2i  %2i  %5i , %-5i  %5i , %-5i  "
         "%5i , %-5i  %s%s%s\n",
         winInfo->window,
         getWindowTitle(
             winInfo->window).c_str(),
         winInfo->onWorkspace,
         winInfo->mapState,
-        (int) winInfo->windowBorder.x(),
-        (int) winInfo->windowBorder.y(),
-        (int) winInfo->windowBorder.width(),
-        (int) winInfo->windowBorder.height(),
+        (int) winInfo->windowCanvas.x(),
+        (int) winInfo->windowCanvas.y(),
+        (int) winInfo->windowCanvas.width(),
+        (int) winInfo->windowCanvas.height(),
+        (int) winInfo->canvasOffset.x(),
+        (int) winInfo->canvasOffset.y(),
         winInfo->isDock ? "dock " : "",
         winInfo->isSticky ? "sticky " : "",
         winInfo->isHidden ? "hidden" : "");
