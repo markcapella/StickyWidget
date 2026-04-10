@@ -3,6 +3,18 @@
 
 #include "StickyWidget.h"
 
+SettingsHelper* mSettingsHelper = nullptr;
+DisplayHelper* mDisplayHelper = nullptr;
+XHelper* mXHelper = nullptr;
+XftFont* mFont = nullptr;
+
+bool mWaitingForUnClick = false;
+Clock::time_point mClickStart{};
+Clock::time_point mClickEnd{};
+
+const double MAIN_THREAD_MS = 0.55;
+
+
 /**
  * StickyWidget is an X-based prototype for windows that
  * act like KDE Plasmoids.
@@ -34,18 +46,23 @@ int main(int argc, char** argv) {
 
     // Init helpers.
     mSettingsHelper = new SettingsHelper(APP_NAME);
-    mXHelper = new XHelper(fl_display);
 
     mDisplayHelper = new DisplayHelper(fl_display);
     if (mDisplayHelper->getDisplay() == nullptr) {
         cout << endl << XCOLOR_RED << "StickyWidget: X11 "
             "Windows are unavailable with this Desktop - "
-            "FATAL." << XCOLOR_NORMAL << "\n";
+            "FATAL." << XCOLOR_NORMAL << endl;
         return true;
     }
 
+    mXHelper = new XHelper();
+
     // Set X Error handler (quiets non-errors).
     XSetErrorHandler(mXHelper->handleX11ErrorEvent);
+
+    // Set font for layouts.
+    mFont = XftFontOpenName(fl_display, DefaultScreen(
+        fl_display), "Sans-16:bold");
 
     // Ensure we have a compositor running.
     if (!mXHelper->isACompositorRunning()) {
@@ -71,24 +88,14 @@ int main(int argc, char** argv) {
         return true;
     }
 
-    // Set border state.
+    // Create initial window & set border state.
     StickyWindow* canvas = new StickyWindow(
         mSettingsHelper->getWindowXPos(),
         mSettingsHelper->getWindowYPos(),
         mSettingsHelper->getWindowWidth(),
         mSettingsHelper->getWindowHeight(), APP_NAME);
-
-    canvas->border(mSettingsHelper->getWindowBorderWidth());
-
-    const Fl_PNG_Image* icon = new Fl_PNG_Image("/usr/share/icons/"
-        "hicolor/64x64/apps/StickyWidget.png");
-    if (!icon || icon->fail()) {
-        icon = new Fl_PNG_Image("StickyWidget.png");
-    }
-    if (icon && !icon->fail()) {
-        canvas->icon(icon);
-    }
-
+    canvas->border(mSettingsHelper->
+        getWindowBorderWidth());
     canvas->end();
     canvas->show();
 
@@ -125,5 +132,6 @@ void mainThread(void* data) {
     // Restart mainThread timer & done.
     mClickStart = Clock::now();
     mWaitingForUnClick = true;
+
     Fl::repeat_timeout(MAIN_THREAD_MS, mainThread, data);
 }

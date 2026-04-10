@@ -3,7 +3,7 @@
 # Variables to control Compile / Link.
 #
 APP_NAME="StickyWidget"
-APP_VERSION="2026-04-07 20:43"
+APP_VERSION="2026-04-10"
 APP_AUTHOR="Mark James Capella"
 
 # Color styling.
@@ -20,6 +20,7 @@ COLOR_WHITE := $(shell tput setaf 7)
 
 CPP = g++
 
+FREETYPE_CFLAGS = `pkg-config --cflags xft`
 CFLAGS = -std=c++17 -fPIC -I. \
 	-I/usr/include/X11 \
 	-I/usr/include/x86_64-linux-gnu/qt6 \
@@ -27,6 +28,7 @@ CFLAGS = -std=c++17 -fPIC -I. \
 	-I/usr/include/X11/extensions \
 	`fltk-config --cxxflags`
 
+FREETYPE_LFLAGS = `pkg-config --libs xft`
 LFLAGS = -lX11 -lXext -lXfixes -lXrender -lfltk_images \
 	`pkg-config --libs libpng` \
 	-L/usr/lib/x86_64-linux-gnu -lQt6Core \
@@ -53,22 +55,22 @@ all:
 	@echo
 
 	$(CPP) $(CFLAGS) -c SettingsHelper.cpp -o SettingsHelper.o \
-		$(pkg-config --cflags --libs QtCore)
+		$(pkg-config --cflags --libs QtCore) $(FREETYPE_CFLAGS)
 	$(CPP) $(CFLAGS) -c DisplayHelper.cpp -o DisplayHelper.o \
-		$(pkg-config --cflags --libs QtCore)
+		$(pkg-config --cflags --libs QtCore) $(FREETYPE_CFLAGS)
 	$(CPP) $(CFLAGS) -c XHelper.cpp -o XHelper.o \
-		$(pkg-config --cflags --libs QtCore)
+		$(pkg-config --cflags --libs QtCore) $(FREETYPE_CFLAGS)
 
 	$(CPP) $(CFLAGS) -c StickyWindow.cpp -o StickyWindow.o \
-		$(pkg-config --cflags --libs QtCore)
+		$(pkg-config --cflags --libs QtCore) $(FREETYPE_CFLAGS)
 	$(CPP) $(CFLAGS) -c StickyWidget.cpp -o StickyWidget.o \
-		$(pkg-config --cflags --libs QtCore)
+		$(pkg-config --cflags --libs QtCore) $(FREETYPE_CFLAGS)
 
 	@echo
 	$(CPP) SettingsHelper.o DisplayHelper.o XHelper.o \
 		StickyWindow.o StickyWidget.o \
 		-o StickyWidget \
-		${LFLAGS}
+		$(LFLAGS) $(FREETYPE_LFLAGS)
 
 	@echo "true" > "BUILD_COMPLETE"
 

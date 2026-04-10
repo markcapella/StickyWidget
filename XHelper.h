@@ -7,7 +7,7 @@
  */
 class XHelper {
     public:
-        XHelper(Display* displayHelper);
+        XHelper();
 
         /**
          * This method traps and handles X11 errors.
@@ -106,7 +106,7 @@ class XHelper {
         /**
          * This method scans the desktop windows list in
          * stacked order to determine if a requested window
-         * is the one the mouse is over.
+         * is the one the mouse cursor is over.
          */
         bool isWindowHovered(const Window window,
             const QPoint pos);

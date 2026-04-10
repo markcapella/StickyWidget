@@ -12,6 +12,15 @@ SettingsHelper::SettingsHelper(const QString appName) {
 }
 
 /**
+ * Getter for Hello World message.
+ */
+QString
+SettingsHelper::getHelloMessage() {
+    return getQSettings()->value("helloMessage",
+        "Hello world !").toString();
+}
+
+/**
  * Getter & setters for window minimum Width.
  */
 double

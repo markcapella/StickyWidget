@@ -1,13 +1,15 @@
 
 #include "Global.h"
 
+#include "StickyWidget.h"
+
 /**
  * XHelper provides common X related methods.
  *
  */
-XHelper::XHelper(Display* displayHelper) {
+XHelper::XHelper() {
 
-    mDisplay = displayHelper;
+    mDisplay = mDisplayHelper->getDisplay();
 }
 
 /**
@@ -28,7 +30,7 @@ XHelper::handleX11ErrorEvent(Display* display,
     XGetErrorText(display, event->error_code, msg,
         sizeof(msg));
 
-    printf("%sfltkWidget5: handleX11ErrorEvent() %s.%s\n",
+    printf("%sStickyWidget: handleX11ErrorEvent() %s.%s\n",
         XCOLOR_RED, msg, XCOLOR_NORMAL);
     return 1;
 }
@@ -412,7 +414,7 @@ XHelper::isWindowDock(const Window window) {
 /**
  * This method scans the desktop windows list in
  * stacked order to determine if a requested window
- * is the one the mouse is over.
+ * is the one the mouse cursor is over.
  */
 bool
 XHelper::isWindowHovered(const Window window, const QPoint pos) {
@@ -424,7 +426,7 @@ XHelper::isWindowHovered(const Window window, const QPoint pos) {
     const vector<WinInfo*> winInfos = getWinInfoList();
     const int WININFO_SIZE = winInfos.size();
 
-    // Search windows down from the top.
+    // Search candidates down from the top.
     for (int i = WININFO_SIZE - 1; i >= 0; i--) {
         // Hidden windows can't be hovered.
         const WinInfo* EACH = winInfos[i];

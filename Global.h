@@ -37,6 +37,7 @@ using namespace std;
 #include <X11/extensions/shape.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/Xrender.h>
+#include <X11/Xft/Xft.h>
 
 // Libpng libraries.
 #include <png.h>

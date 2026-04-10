@@ -22,20 +22,10 @@
  * button in the panels Task manager is removed.
  *
  */
+extern SettingsHelper* mSettingsHelper;
 
-const char* ICON_PNGFILE = "StickyWidget.png";
-const char* ICON_PNGPATH =
-    "/usr/share/icons/hicolor/64x64/apps/";
+extern DisplayHelper* mDisplayHelper;
 
+extern XHelper* mXHelper;
 
-SettingsHelper* mSettingsHelper = nullptr;
-DisplayHelper* mDisplayHelper = nullptr;
-XHelper* mXHelper = nullptr;
-
-
-bool mWaitingForUnClick = false;
-Clock::time_point mClickStart{};
-Clock::time_point mClickEnd{};
-
-
-const double MAIN_THREAD_MS = 0.55;
+extern XftFont* mFont;

@@ -8,25 +8,34 @@
 class StickyWindow : public Fl_Double_Window {
 
     public:
-        static inline const char* ICON_PNGFILE =
+        // Define window icon.
+        static inline const char* ICON_LOCAL_LOCATION =
             "StickyWidget.png";
-        static inline const char* ICON_PNGPATH =
-            "/usr/share/icons/hicolor/64x64/apps/";
+        static inline const char* ICON_INSTALLED_LOCATION =
+            "/usr/share/icons/hicolor/64x64/apps/StickyWidget.png";
 
-        static inline const int SETTINGS_BUTTON_WIDTH = 24;
-        static inline const int SETTINGS_BUTTON_HEIGHT = 24;
+        // Define settings button.
+        static inline const int BUTTON_WIDTH = 24;
+        static inline const int BUTTON_HEIGHT = 24;
+
+        // Define draw colors.
+        static inline constexpr XftColor mFontColor = {
+            .pixel = 0x0, .color = { .red = 0xff, .green = 0xff,
+                .blue = 0xff, .alpha = 0xffff } };
 
         static inline constexpr XRenderColor TRANSPARENT = {
             0x0000, 0x0000, 0x0000, 0x0000 };
 
-        static inline constexpr XRenderColor WHITE = {
-            0xffff, 0xffff, 0xffff, 0xffff };
         static inline constexpr XRenderColor BLACK = {
             0x0000, 0x0000, 0x0000, 0xffff };
+        static inline constexpr XRenderColor WHITE = {
+            0xffff, 0xffff, 0xffff, 0xffff };
+
         static inline constexpr XRenderColor LIGHT_GRAY = {
             0xd800, 0xd500, 0xd200, 0xffff };
 
 
+        // Constructors.
         StickyWindow(const double width, const double height,
             const char* title = 0);
 
@@ -46,6 +55,11 @@ class StickyWindow : public Fl_Double_Window {
          * on mouse hover.
          */
         void draw() override;
+
+        /**
+         * Overriden hide() method.
+         */
+        void hide() override;
 
         /**
          * Overriden resize() method ensures we remember
@@ -73,9 +87,18 @@ class StickyWindow : public Fl_Double_Window {
 
     private:
         // Members.
-        static SettingsHelper* mSettingsHelper;
-        XHelper* mXHelper = nullptr;
-
         Fl_Button* mSettingsButton = nullptr;
+
         bool mSettingsButtonVisibile = false;
+
+        /**
+         * This method returns pixel width of a text string.
+         */
+        int getStringPixelWidth(const QString textString);
+
+        /**
+         * This method returns pixel height of a text string.
+         */
+        int getStringPixelHeight(const QString textString);
 };
+

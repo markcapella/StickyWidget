@@ -12,6 +12,11 @@ class SettingsHelper {
         SettingsHelper(const QString appName);
 
         /**
+         * Getter for Hello World message.
+         */
+        QString getHelloMessage();
+
+        /**
          * Getter & setters for window minimum Width.
          */
         double getMinimumWindowWidth();
