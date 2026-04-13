@@ -8,11 +8,11 @@ DisplayHelper* mDisplayHelper = nullptr;
 XHelper* mXHelper = nullptr;
 XftFont* mFont = nullptr;
 
-bool mWaitingForUnClick = false;
 Clock::time_point mClickStart{};
 Clock::time_point mClickEnd{};
 
-const double MAIN_THREAD_MS = 0.55;
+const double MAIN_THREAD_MS = 0.050; // 50 ms.
+const chrono::milliseconds CLICK_LEN_MS(100); // 100 ms.
 
 
 /**
@@ -94,8 +94,12 @@ int main(int argc, char** argv) {
         mSettingsHelper->getWindowYPos(),
         mSettingsHelper->getWindowWidth(),
         mSettingsHelper->getWindowHeight(), APP_NAME);
-    canvas->border(mSettingsHelper->
-        getWindowBorderWidth());
+
+    // Set app minimum window size.
+    canvas->size_range(mSettingsHelper->getMinimumWindowWidth(),
+        mSettingsHelper->getMinimumWindowHeight(), 0, 0);
+    canvas->border(mSettingsHelper->getWindowBorderWidth());
+
     canvas->end();
     canvas->show();
 
@@ -105,33 +109,57 @@ int main(int argc, char** argv) {
 }
 
 /**
- * Timer callback to toggle Window Visible, if required
- * due to user right-clicking.
+ * Timer callback to detect user clicks of a settings button.
  */
 void mainThread(void* data) {
     StickyWindow* canvas = static_cast<StickyWindow*> (data);
     const Window THIS_X_WINDOW(fl_xid(canvas));
 
-    // If canvas not-right clicked, exit.
+    // If can't find cursor location, exit.
     Window root, child;
     int rootX, rootY, winX, winY;
     unsigned int mask;
-
     if (!XQueryPointer(fl_display, THIS_X_WINDOW, &root,
         &child, &rootX, &rootY, &winX, &winY, &mask)) {
-        mWaitingForUnClick = false;
+        canvas->setSettingsButtonPressed(false);
         Fl::repeat_timeout(MAIN_THREAD_MS, mainThread, data);
         return;
     }
 
-    // Get window hovered state.
+    // Set widget settings button visibility state.
     const bool IS_WINDOW_HOVERED = mXHelper->isWindowHovered(
         THIS_X_WINDOW, QPoint(rootX, rootY));
     canvas->setSettingsButtonVisibility(IS_WINDOW_HOVERED);
 
+    // If not mouse clicked.
+    if (!(mask & Button1Mask)) {
+        canvas->setSettingsButtonPressed(false);
+        Fl::repeat_timeout(MAIN_THREAD_MS, mainThread, data);
+        return;
+    }
+
+    // If we're waiting to be unclicked.
+    if (canvas->isSettingsButtonPressed()) {
+        mClickEnd = Clock::now();
+        const chrono::milliseconds duration =
+            chrono::duration_cast<chrono::milliseconds>
+                (mClickStart - mClickEnd);
+        if (duration < CLICK_LEN_MS) {
+            Fl::repeat_timeout(MAIN_THREAD_MS, mainThread, data);
+            return;
+        }
+    }
+
+    // When mouse unclicked, if hovered over widget settings
+    // button, trigger it's click() handler.
+    if (IS_WINDOW_HOVERED) {
+        if (canvas->isSettingsButtonHovered(QPoint(winX, winY))) {
+            canvas->onSettingsButtonClicked();
+        }
+    }
+
     // Restart mainThread timer & done.
     mClickStart = Clock::now();
-    mWaitingForUnClick = true;
-
+    canvas->setSettingsButtonPressed(true);
     Fl::repeat_timeout(MAIN_THREAD_MS, mainThread, data);
 }

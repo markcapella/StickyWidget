@@ -3,7 +3,7 @@
 # Variables to control Compile / Link.
 #
 APP_NAME="StickyWidget"
-APP_VERSION="2026-04-10"
+APP_VERSION="2026-04-12"
 APP_AUTHOR="Mark James Capella"
 
 # Color styling.

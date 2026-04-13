@@ -13,46 +13,28 @@ StickyWindow::StickyWindow(const double xPos,
     const double height, const char* title) :
     Fl_Double_Window(xPos, yPos, width, height, title) {
 
-    // Set app minimum window size.
-    size_range(mSettingsHelper->getMinimumWindowWidth(),
-        mSettingsHelper->getMinimumWindowHeight(), 0, 0);
-
-    // Create floating SettingsButton, clickBack &
-    // visibility state.
-    const int BORDER_WIDTH = mSettingsHelper->
-        getWindowBorderWidth();
-    mSettingsButton = new Fl_Button(width -
-        BUTTON_WIDTH - BORDER_WIDTH, BORDER_WIDTH,
-        BUTTON_WIDTH, BUTTON_HEIGHT, "O");
-
-    mSettingsButton->callback(onSettingsButtonClicked, this);
-    if (!mSettingsButtonVisibile) {
-        mSettingsButton->hide();
+    // Set window icon.
+    Fl_PNG_Image* icon = new Fl_PNG_Image(
+        ICON_INSTALL_LOCATION);
+    if (!icon || !icon->data()) {
+        icon = new Fl_PNG_Image(ICON_LOCAL_LOCATION);
     }
-
-    // Don't use toolkit draw.
-    Fl_PNG_Image* icon = new Fl_PNG_Image("/usr/share/icons/"
-        "hicolor/64x64/apps/StickyWidget.png");
-    if (!icon || icon->fail()) {
-        icon = new Fl_PNG_Image("StickyWidget.png");
-    }
-    if (icon && !icon->fail()) {
+    if (icon && icon->data()) {
         this->icon(icon);
     }
 
+    // Don't use toolkit draw.
     this->box(FL_NO_BOX);
     this->end();
 
-    // Set initial app size & position centered on screen.
+    // Set initial window size & position centered on screen.
     if (mSettingsHelper->getWindowXPos() == -1 &&
         mSettingsHelper->getWindowYPos() == -1) {
         mSettingsHelper->setWindowPosAndSize(
-            (WidthOfScreen(DefaultScreenOfDisplay(
-                fl_display)) - mSettingsHelper->
-                getWindowWidth()) / 2,
-            (HeightOfScreen(DefaultScreenOfDisplay(
-                fl_display)) - mSettingsHelper->
-                getWindowHeight()) / 2,
+            (WidthOfScreen(DefaultScreenOfDisplay(fl_display)) -
+                mSettingsHelper->getWindowWidth()) / 2,
+            (HeightOfScreen(DefaultScreenOfDisplay(fl_display)) -
+                mSettingsHelper->getWindowHeight()) / 2,
             mSettingsHelper->getWindowWidth(),
             mSettingsHelper->getWindowHeight()
         );
@@ -63,7 +45,7 @@ StickyWindow::StickyWindow(const double xPos,
 
 /**
  * Overriden show() method ensures we stay on bottom
- * when app is "stuck", app border state != visible.
+ * when window is "stuck", window border state != visible.
  */
 void
 StickyWindow::show() {
@@ -85,9 +67,8 @@ StickyWindow::hide() {
 }
 
 /**
- * Overriden draw() method ensures we have a
- * transparent window with SettingsButton visible
- * on mouse hover.
+ * Overriden draw() method ensures we have a transparent
+ * window with SettingsButton visible on mouse hover.
  */
 void
 StickyWindow::draw() {
@@ -98,29 +79,26 @@ StickyWindow::draw() {
     // Create a 1x1 pixmap to act as a solid color source.
     const Pixmap RENDER_PIXMAP = XCreatePixmap(fl_display,
         fl_xid(this), 1, 1, 32);
-    const Picture RENDER_COLOR_RED = XRenderCreatePicture(
-        fl_display, RENDER_PIXMAP, RENDER_FORMAT, 0, nullptr);
-
     const Picture RENDER_PICTURE = XRenderCreatePicture(
         fl_display, fl_xid(this), RENDER_FORMAT, 0, nullptr);
 
-    XRenderColor RED_COLOR;
-    RED_COLOR.red = 0xffff;
-    RED_COLOR.green = 0x0000;
-    RED_COLOR.blue = 0x0000;
-    RED_COLOR.alpha = 0xffff;
-    XRenderFillRectangle(fl_display, PictOpSrc, RENDER_COLOR_RED,
-        &RED_COLOR, 0, 0, 1, 1);
+    // Draw entire draw canvas transparent.
+    XRenderFillRectangle(fl_display, PictOpSrc,
+        RENDER_PICTURE, &TRANSPARENT, 0, 0, w(), h());
 
-    // Set entire draw canvas transparent.
-    XRenderFillRectangle(fl_display, PictOpSrc, RENDER_PICTURE,
-        &TRANSPARENT, 0, 0, w(), h());
+    // Draw red background in window.
+    const Picture RENDER_COLOR_RED = XRenderCreatePicture(
+        fl_display, RENDER_PIXMAP, RENDER_FORMAT, 0, nullptr);
+    XRenderColor backgroundColor = {
+        0xffff, 0x0000, 0x0000, 0xffff };
+    XRenderFillRectangle(fl_display, PictOpSrc,
+        RENDER_COLOR_RED, &backgroundColor,
+        0, 0, 1, 1);
+    XRenderFillRectangle(fl_display, PictOpOver,
+        RENDER_PICTURE, &backgroundColor,
+        10, 10, w() - 20, h() - 20);
 
-    // Red background in window.
-    XRenderFillRectangle(fl_display, PictOpOver, RENDER_PICTURE,
-        &RED_COLOR, 10, 10, w() - 20, h() - 20);
-
-    // Use font color green.
+    // Select font color green for Hello message.
     XftColor greenFontColor;
     greenFontColor.color.red = 0x0000;
     greenFontColor.color.green = 0xffff;
@@ -129,7 +107,7 @@ StickyWindow::draw() {
     XftColorAllocValue(fl_display, fl_visual->visual,
         fl_colormap, &greenFontColor.color, &greenFontColor);
 
-    // Say hello message in the font.
+    // Draw hello message in the font.
     const QString MESSAGE = mSettingsHelper->getHelloMessage();
     const int MESSAGE_WIDTH = getStringPixelWidth(MESSAGE);
     const int MESSAGE_HEIGHT = getStringPixelHeight(MESSAGE);
@@ -146,15 +124,13 @@ StickyWindow::draw() {
         MESSAGE_X, MESSAGE_Y, (FcChar8*) MESSAGE_CHARS,
         strlen(MESSAGE_CHARS));
 
-    // Define & draw settings button
-    if (mSettingsButtonVisibile) {
+    // Define & draw settings button.
+    if (mSettingsButtonVisible) {
+        // Get settings button position & color.
         const XRenderColor BUTTON_COLOR =
-            mSettingsButton->value() ? LIGHT_GRAY : WHITE;
-
-        const int BUTTON_X = w() - BUTTON_WIDTH -
-            mSettingsHelper->getWindowBorderWidth();
-        const int BUTTON_Y = mSettingsHelper->
-            getWindowBorderWidth();
+            isSettingsButtonPressed() ? LIGHT_GRAY : WHITE;
+        const int BUTTON_X = w() - BUTTON_WIDTH -1;
+        const int BUTTON_Y = 1;
 
         const XRenderPictureAttributes PIC_ATTR = {
             .poly_edge = PolyEdgeSmooth };
@@ -162,6 +138,9 @@ StickyWindow::draw() {
             fl_xid(this), XRenderFindStandardFormat(fl_display,
             PictStandardARGB32), CPPolyEdge, &PIC_ATTR);
 
+        // Settings button is square white button, indented
+        // square black margin, and central settings button
+        // square is colored based on pressed state.
         XRenderFillRectangle(fl_display, PictOpOver, CANVAS,
             &WHITE, BUTTON_X, BUTTON_Y, BUTTON_WIDTH,
             BUTTON_HEIGHT);
@@ -171,106 +150,120 @@ StickyWindow::draw() {
         XRenderFillRectangle(fl_display, PictOpOver, CANVAS,
             &BUTTON_COLOR, BUTTON_X + 3 , BUTTON_Y + 3,
             BUTTON_WIDTH - 6, BUTTON_HEIGHT - 6);
+
         XRenderFreePicture(fl_display, CANVAS);
     }
 
-    // Cleanup
+    // Cleanup.
     XRenderFreePicture(fl_display, RENDER_PICTURE);
     XRenderFreePicture(fl_display, RENDER_COLOR_RED);
     XFreePixmap(fl_display, RENDER_PIXMAP);
 }
 
 /**
- * Overriden resize() method ensures we remember
- * window position & size on restarts, and adjusts
- * clickable SettingsButton position & its Input
+ * Overriden resize() method ensures we remember window
+ * position & size on restarts.
+ *
+ * Adjusts clickable settings button position & its Input
  * Shape Region to the new top-right location.
  */
 void
 StickyWindow::resize(const int xPos, const int yPos,
     const int width, const int height) {
 
-    Fl_Double_Window::resize(xPos, yPos, width, height);
-
     // Save new position of StickyWidget.
+    Fl_Double_Window::resize(xPos, yPos, width, height);
     mSettingsHelper->setWindowPosAndSize(xPos, yPos,
         width, height);
 
-    // Calc border size for settingsButton
-    // position & size.
+    // Calc border size for settings button position & size.
     const int BORDER_WIDTH = mSettingsHelper->
         getWindowBorderWidth();
 
-    // Re-position clickable SettingsButton.
-    mSettingsButton->position(width - mSettingsButton->w() -
-        BORDER_WIDTH, BORDER_WIDTH);
-
-    // Reposition the Input Shape Region under the
-    // SettingsButton to allow small clickable area.
-    XRectangle settingsButtonInputRegion {
-        .x = static_cast<short> (width -
-            BUTTON_WIDTH - BORDER_WIDTH),
-        .y = static_cast<short> (BORDER_WIDTH),
-        .width = BUTTON_WIDTH,
-        .height = BUTTON_HEIGHT,
-    };
-    const XserverRegion region = XFixesCreateRegion(
+    // Set entire draw area as transparent to mouse clicks.
+    XRectangle settingsButtonInputRegion { .x = (short) xPos,
+        .y = (short) yPos, .width = (unsigned short) width,
+        .height = (unsigned short) height };
+    const XserverRegion REGION = XFixesCreateRegion(
         fl_display, &settingsButtonInputRegion, 1);
     XFixesSetWindowShapeRegion(fl_display,
-        fl_xid(this), ShapeInput, 0, 0, region);
-    XFixesDestroyRegion(fl_display, region);
+        fl_xid(this), ShapeInput, 0, 0, REGION);
+    XFixesDestroyRegion(fl_display, REGION);
 
-    // Convienience to expose the Settings Button
-    // visually during drags.
+    // Expose the settings button visually during drags.
     setSettingsButtonVisibility(true);
-    this->redraw();
+    redraw();
 }
 
 /**
- * Settings button is visible when cursor hovers
- * the app window, & enables clicking to opposite
- * app border state.
+ * Getter for the settings button hover state.
+ */
+bool
+StickyWindow::isSettingsButtonHovered(const QPoint pos) {
+    // Get Settings button position in window.
+    const QRect* SETTINGS_RECT = new QRect(w() - BUTTON_WIDTH -
+        mSettingsHelper->getWindowBorderWidth(),
+        mSettingsHelper->getWindowBorderWidth(),
+        BUTTON_WIDTH, BUTTON_HEIGHT);
+
+    return SETTINGS_RECT->contains(pos);
+}
+
+/**
+ * Getter for the settings button press state.
+ */
+bool
+StickyWindow::isSettingsButtonPressed() {
+    return mSettingsButtonClicked;
+}
+
+/**
+ * Setter for the settings button press state.
+ */
+void
+StickyWindow::setSettingsButtonPressed(const bool clicked) {
+    if (mSettingsButtonClicked == clicked) {
+        return;
+    }
+
+    mSettingsButtonClicked = clicked;
+    redraw();
+}
+
+/**
+ * Setter for settings button visibility state.
  */
 void
 StickyWindow::setSettingsButtonVisibility(
     const bool visibility) {
-    if (mSettingsButtonVisibile == visibility) {
+    if (mSettingsButtonVisible == visibility) {
         return;
     }
 
-    mSettingsButtonVisibile = visibility;
-    if (!mSettingsButtonVisibile) {
-        mSettingsButton->hide();
-    } else {
-        mSettingsButton->show();
-    }
+    mSettingsButtonVisible = visibility;
+    redraw();
 }
 
 /**
- * Toggle app visibility state when settings button
- * clicked. Switch between StickyWidget app border
- * state (titlebar & border displayed -vs- none).
+ * Switch between StickyWidget window border state where
+ * titlebar & border displayed or not.
  */
 void
-StickyWindow::onSettingsButtonClicked(Fl_Widget* w,
-    void* data) {
-    StickyWindow* canvas = (StickyWindow*) data;
-    canvas->hide();
+StickyWindow::onSettingsButtonClicked() {
+    hide();
 
     // Toggle app border state.
     mSettingsHelper->setWindowBorderVisible(
         !mSettingsHelper->isWindowBorderVisible());
 
     // Set position & state.
-    canvas->position(mSettingsHelper->
-        getWindowXPos(), mSettingsHelper->
-        getWindowYPos());
+    position(mSettingsHelper->getWindowXPos(),
+        mSettingsHelper->getWindowYPos());
 
     // Set titlebar & border state.
-    canvas->border(mSettingsHelper->
-        getWindowBorderWidth());
+    border(mSettingsHelper->getWindowBorderWidth());
 
-    canvas->show();
+    show();
 }
 
 /**
